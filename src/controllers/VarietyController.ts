@@ -71,6 +71,7 @@ class VarietyController {
       }
     });
   }
+  
 }
 
 export default new VarietyController();

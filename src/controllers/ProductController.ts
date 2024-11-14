@@ -6,7 +6,7 @@ import { Product } from '../models/Products';
 class ProductController {
   // Obtener todos los productos
   public async getProducts(req: Request, res: Response): Promise<void> {
-    db.getConnection().query('SELECT * FROM products', (err, results) => {
+    db.getConnection().query('SELECT * FROM products WHERE enable = 1 ORDER BY name', (err, results) => {
       if (err) {
         res.status(500).json({ error: 'Error al obtener productos' });
       } else {
@@ -64,7 +64,7 @@ class ProductController {
   // Eliminar producto
   public async deleteProduct(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
-    db.getConnection().query('DELETE FROM products WHERE id = ?', [id], (err, result) => {
+    db.getConnection().query('UPDATE products SET enable = 0 WHERE id = ? AND enable = 1;', [id], (err, result) => {
       if (err) {
         res.status(500).json({ error: 'Error al eliminar el producto' });
       } else {
@@ -72,6 +72,24 @@ class ProductController {
       }
     });
   }
+
+  public async getAllProducts(req: Request, res: Response): Promise<void> {
+    db.getConnection().query(
+      `SELECT p.id, p.name, v.variety_name as variety, pr.name as provider 
+      FROM products p
+      LEFT JOIN varieties v ON p.id = v.product_id
+      LEFT JOIN providers pr ON p.provider_id = pr.id`,
+      (err, result) => {
+        if (err) {
+          res.status(500).json({ error: 'Error al obtener productos' });
+        } else {
+          res.json(result);
+        }
+      }
+    );
+  }
+
+
 }
 
 export default new ProductController();

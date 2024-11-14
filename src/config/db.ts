@@ -12,15 +12,20 @@ class Database {
       user: process.env.DB_USER,
       password: process.env.DB_PASS,
       database: process.env.DB_NAME,
+      ssl: {
+        rejectUnauthorized: true,
+      },
     });
 
     this.connection.connect((err) => {
       if (err) {
-        console.error('Error connecting to the database:', err.stack);
-        return;
+        console.error('Error connecting to the database:', err.message);
+        console.error('Full error details:', err);
+      } else {
+        console.log('Connected to the database');
       }
-      console.log('Connection success.');
     });
+    
   }
 
   public getConnection(): Connection {
