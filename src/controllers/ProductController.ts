@@ -9,6 +9,7 @@ class ProductController {
     db.getConnection().query('SELECT * FROM products WHERE enable = 1 ORDER BY name', (err, results) => {
       if (err) {
         res.status(500).json({ error: 'Error al obtener productos' });
+        console.log(err);
       } else {
         res.json(results);
       }
@@ -21,6 +22,7 @@ class ProductController {
     db.getConnection().query('SELECT * FROM products WHERE id = ?', [id], (err, result) => {
       if (err) {
         res.status(500).json({ error: 'Error al obtener el producto' });
+        console.log(err);
       } else {
         res.json(result);
       }
@@ -36,6 +38,7 @@ class ProductController {
       (err, result) => {
         if (err) {
           res.status(500).json({ error: 'Error al crear el producto' });
+          console.log(err);
         } else {
           const insertResult = result as ResultSetHeader;
           res.json({ id: insertResult.insertId });
@@ -54,6 +57,7 @@ class ProductController {
       (err, result) => {
         if (err) {
           res.status(500).json({ error: 'Error al actualizar el producto' });
+          console.log(err);
         } else {
           res.json({ message: 'Producto actualizado' });
         }
