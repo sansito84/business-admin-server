@@ -5,7 +5,7 @@ dotenv.config();
 
 class Database {
   private connection!: Connection;
-  private isConnected: boolean = false; // Bandera para controlar el estado de la conexión
+  private isConnected: boolean = false; // Bandera para el estado de conexión
 
   constructor() {
     this.connect();
@@ -24,7 +24,7 @@ class Database {
         console.error('Error al conectar a la base de datos:', err.message);
         console.error('Reintentando en 2 segundos...');
         this.isConnected = false;
-        setTimeout(() => this.connect(), 2000); // Reintentar conexión
+        setTimeout(() => this.connect(), 2000); // Intentar reconectar
       } else {
         console.log('Conectado a la base de datos');
         this.isConnected = true;
@@ -33,12 +33,16 @@ class Database {
 
     this.connection.on('error', (err) => {
       console.error('Error en la conexión:', err);
-      this.isConnected = false; // Actualizar bandera de estado
-      if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-        console.log('Conexión perdida. Reintentando...');
-        this.connect(); // Reconectar automáticamente
+      this.isConnected = false;
+
+      if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNRESET') {
+        console.log('Conexión perdida. Intentando reconectar...');
+        this.connect(); // Reconexión automática
+      } else if (err.fatal) {
+        console.log('Error fatal en la conexión. Reconectando...');
+        this.connect();
       } else {
-        throw err;
+        throw err; // Lanza el error si no es manejable
       }
     });
   }
@@ -46,16 +50,29 @@ class Database {
   public query(sql: string, values?: any): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.isConnected) {
-        console.log('Reconexión necesaria antes de ejecutar la consulta...');
+        console.log('Conexión no disponible. Reintentando consulta...');
         this.connect();
+        setTimeout(() => reject(new Error('Conexión no disponible')), 2000);
+        return;
       }
 
       this.connection.query(sql, values, (err, results) => {
         if (err) {
-          console.error('Error en la consulta:', err);
-          reject(err);
+          console.error('Error en la consulta:', err.message);
+
+          // Manejar errores específicos
+          if (
+            err.code === 'PROTOCOL_CONNECTION_LOST' ||
+            err.code === 'ECONNRESET' ||
+            err.code === 'ECONNREFUSED'
+          ) {
+            console.log('Error de conexión. Intentando reconectar...');
+            this.connect();
+          }
+
+          reject(err); // Rechaza la consulta si hay error
         } else {
-          resolve(results);
+          resolve(results); // Retorna los resultados si todo está bien
         }
       });
     });
@@ -63,7 +80,7 @@ class Database {
 
   public getConnection(): Connection {
     if (!this.isConnected) {
-      console.log('Reconexión necesaria antes de devolver la conexión...');
+      console.log('La conexión no está disponible. Reconectando...');
       this.connect();
     }
     return this.connection;
