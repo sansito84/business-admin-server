@@ -4,9 +4,13 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 class Database {
-  private connection: Connection;
+  private connection!: Connection;
 
   constructor() {
+    this.connect();
+  }
+
+  private connect() {
     this.connection = mysql.createConnection({
       host: process.env.DB_HOST,
       user: process.env.DB_USER,
@@ -18,11 +22,22 @@ class Database {
       if (err) {
         console.error('Error connecting to the database:', err.message);
         console.error('Full error details:', err);
+        console.error('Reintentando en 2 segundos...');
+        setTimeout(() => this.connect(), 2000); 
       } else {
         console.log('Connected to the database');
       }
     });
-    
+
+    this.connection.on('error', (err) => {
+      console.error('Database error:', err);
+      if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+        console.log('Conexión perdida. Reintentando...');
+        this.connect(); // Reconectar automáticamente
+      } else {
+        throw err;
+      }
+    });    
   }
 
   public getConnection(): Connection {
