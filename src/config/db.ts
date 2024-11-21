@@ -49,32 +49,36 @@ class Database {
 
   public query(sql: string, values?: any): Promise<any> {
     return new Promise((resolve, reject) => {
-      if (!this.isConnected) {
-        console.log('Conexión no disponible. Reintentando consulta...');
-        this.connect();
-        setTimeout(() => reject(new Error('Conexión no disponible')), 2000);
-        return;
-      }
-
-      this.connection.query(sql, values, (err, results) => {
-        if (err) {
-          console.error('Error en la consulta:', err.message);
-
-          // Manejar errores específicos
-          if (
-            err.code === 'PROTOCOL_CONNECTION_LOST' ||
-            err.code === 'ECONNRESET' ||
-            err.code === 'ECONNREFUSED'
-          ) {
-            console.log('Error de conexión. Intentando reconectar...');
-            this.connect();
-          }
-
-          reject(err); // Rechaza la consulta si hay error
-        } else {
-          resolve(results); // Retorna los resultados si todo está bien
+      const attemptQuery = () => {
+        if (!this.isConnected) {
+          console.log('Conexión no disponible. Reintentando consulta...');
+          this.connect();
+          setTimeout(attemptQuery, 2000); // Reintenta después de 2 segundos
+          return;
         }
-      });
+
+        this.connection.query(sql, values, (err, results) => {
+          if (err) {
+            console.error('Error en la consulta:', err.message);
+
+            if (
+              err.code === 'PROTOCOL_CONNECTION_LOST' ||
+              err.code === 'ECONNRESET' ||
+              err.code === 'ECONNREFUSED'
+            ) {
+              console.log('Error de conexión. Intentando reconectar...');
+              this.connect();
+              setTimeout(attemptQuery, 2000); // Reintenta la consulta
+            } else {
+              reject(err); // Rechaza la consulta si hay un error diferente
+            }
+          } else {
+            resolve(results); // Retorna los resultados si todo está bien
+          }
+        });
+      };
+
+      attemptQuery(); // Ejecuta la consulta inicial
     });
   }
 
